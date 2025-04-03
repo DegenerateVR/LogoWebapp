@@ -1,6 +1,5 @@
-import sys
-import os
-import requests
+# main_app.py
+import sys, os, requests
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QListWidget, QPushButton,
     QComboBox, QTextEdit, QListWidgetItem, QScrollArea, QGroupBox
@@ -8,8 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 
-# Note: Since Flask is running with a self-signed certificate, we use https and disable verification.
-API_BASE = "https://127.0.0.1:5000"
+API_BASE = "https://logowebapp.onrender.com"
 
 class OrderManager(QWidget):
     def __init__(self):
@@ -17,13 +15,9 @@ class OrderManager(QWidget):
         self.setWindowTitle("Logo Order Manager - Desktop")
         self.setGeometry(100, 100, 1000, 600)
         self.layout = QHBoxLayout(self)
-        
-        # Left side: Order list
         self.orderList = QListWidget()
         self.orderList.itemClicked.connect(self.show_order_details)
         self.layout.addWidget(self.orderList, 3)
-        
-        # Right side: Order details
         self.detailsGroup = QGroupBox("Order Details")
         self.detailsLayout = QVBoxLayout()
         self.nameLabel = QLabel("Customer:")
@@ -39,89 +33,94 @@ class OrderManager(QWidget):
         self.refreshBtn.clicked.connect(self.load_orders)
         self.openFolderBtn = QPushButton("Open Attachments Folder")
         self.openFolderBtn.clicked.connect(self.open_attachments_folder)
-        
-        self.detailsLayout.addWidget(self.nameLabel)
-        self.detailsLayout.addWidget(QLabel("Status:"))
-        self.detailsLayout.addWidget(self.statusDropdown)
-        self.detailsLayout.addWidget(self.updateBtn)
-        self.detailsLayout.addWidget(QLabel("Details:"))
-        self.detailsLayout.addWidget(self.orderDetails)
-        self.detailsLayout.addWidget(QLabel("Images:"))
-        self.detailsLayout.addWidget(self.imageContainer)
-        self.detailsLayout.addWidget(self.refreshBtn)
-        self.detailsLayout.addWidget(self.openFolderBtn)
-        
+        self.downloadBtn = QPushButton("Download All Orders")
+        self.downloadBtn.clicked.connect(self.download_all_orders)
+        for w in [self.nameLabel, QLabel("Status:"), self.statusDropdown, self.updateBtn,
+                  QLabel("Details:"), self.orderDetails, QLabel("Images:"), self.imageContainer,
+                  self.refreshBtn, self.openFolderBtn, self.downloadBtn]:
+            self.detailsLayout.addWidget(w)
         self.detailsGroup.setLayout(self.detailsLayout)
         self.layout.addWidget(self.detailsGroup, 7)
-        
         self.load_orders()
-    
+
     def load_orders(self):
         self.orderList.clear()
         try:
-            resp = requests.get(f"{API_BASE}/api/orders", verify=False)
-            orders = resp.json()
-            for oid, order in orders.items():
+            resp = requests.get(f"{API_BASE}/api/orders")
+            self.orders = resp.json()
+            for oid, order in self.orders.items():
                 item = QListWidgetItem(f"Order #{oid} - {order['name']}")
                 item.setData(Qt.ItemDataRole.UserRole, int(oid))
                 self.orderList.addItem(item)
         except Exception as e:
             print("Error loading orders:", e)
-    
+
     def show_order_details(self, item):
         oid = item.data(Qt.ItemDataRole.UserRole)
         try:
-            resp = requests.get(f"{API_BASE}/api/order/{oid}", verify=False)
+            resp = requests.get(f"{API_BASE}/api/order/{oid}")
             order = resp.json()
+            self.current_order = order
+            self.current_order_id = oid
             self.nameLabel.setText(f"Customer: {order.get('name', '')}")
             self.statusDropdown.setCurrentText(order.get('status', 'pending payment'))
             self.orderDetails.setText(order.get('details', ''))
-            
-            container = QWidget()
-            vbox = QVBoxLayout()
+            container, vbox = QWidget(), QVBoxLayout()
             for img in order.get('filenames', []):
                 try:
-                    # Images are saved in static/uploads/order_<oid>/filename
-                    img_resp = requests.get(f"{API_BASE}/static/uploads/order_{oid}/{img}", verify=False)
-                    pixmap = QPixmap()
-                    pixmap.loadFromData(img_resp.content)
-                    lbl = QLabel()
-                    lbl.setPixmap(pixmap.scaledToWidth(150))
-                    vbox.addWidget(lbl)
+                    img_url = f"{API_BASE}/static/uploads/order_{oid}_{order.get('order_type')}/{img}"
+                    r = requests.get(img_url)
+                    if r.status_code == 200:
+                        pixmap = QPixmap()
+                        pixmap.loadFromData(r.content)
+                        lbl = QLabel()
+                        lbl.setPixmap(pixmap.scaledToWidth(150))
+                        vbox.addWidget(lbl)
                 except Exception as e:
-                    print(f"Error loading image {img}:", e)
+                    print("Image error:", img, e)
             container.setLayout(vbox)
             self.imageContainer.setWidget(container)
-            
-            self.current_order_id = oid
         except Exception as e:
-            print("Error showing order details:", e)
-    
+            print("Error showing order:", e)
+
     def update_status(self):
-        if not hasattr(self, 'current_order_id'):
-            return
-        new_status = self.statusDropdown.currentText()
+        if not hasattr(self, 'current_order_id'): return
         try:
-            resp = requests.post(f"{API_BASE}/api/order/{self.current_order_id}/status",
-                                 json={"status": new_status}, verify=False)
-            if resp.status_code == 200:
+            new_status = self.statusDropdown.currentText()
+            r = requests.post(f"{API_BASE}/api/order/{self.current_order_id}/status",
+                              json={"status": new_status})
+            if r.status_code == 200:
                 self.load_orders()
-            else:
-                print("Failed to update status.")
         except Exception as e:
             print("Error updating status:", e)
-    
+
     def open_attachments_folder(self):
-        if not hasattr(self, 'current_order_id'):
-            return
-        folder = os.path.join(os.getcwd(), "static", "uploads", f"order_{self.current_order_id}")
+        if not hasattr(self, 'current_order_id') or not hasattr(self, 'current_order'): return
+        folder = os.path.join(os.getcwd(), "static", "uploads",
+                              f"order_{self.current_order_id}_{self.current_order.get('order_type')}")
         if os.path.exists(folder):
             try:
-                os.startfile(folder)  # Works on Windows; adjust for other OS as needed.
+                os.startfile(folder)
             except Exception as e:
                 print("Error opening folder:", e)
         else:
             print("Attachments folder does not exist.")
+
+    def download_all_orders(self):
+        try:
+            r = requests.get(f"{API_BASE}/api/orders")
+            orders = r.json()
+            for oid, order in orders.items():
+                folder = os.path.join(os.getcwd(), "orders", f"order_{oid}_{order.get('order_type')}")
+                os.makedirs(folder, exist_ok=True)
+                for filename in order.get("filenames", []):
+                    url = f"{API_BASE}/static/uploads/order_{oid}_{order.get('order_type')}/{filename}"
+                    resp = requests.get(url)
+                    if resp.status_code == 200:
+                        with open(os.path.join(folder, filename), "wb") as f:
+                            f.write(resp.content)
+        except Exception as e:
+            print("Download error:", e)
 
 if __name__ == '__main__':
     app_qt = QApplication(sys.argv)
