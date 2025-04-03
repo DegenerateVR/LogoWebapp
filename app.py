@@ -86,14 +86,14 @@ def payment_page(order_id):
     if not order:
         return "Order not found", 404
     paypal_client_id = "Ac4XnyVS6sN7WZTR6iHuS2wWTJl4dYZs5ud9etjyrpoS5lhdmKMBXmCtxUA9qBc2cCKtUo8_LOfrjqhB"
-    return render_template('payment_page.html', order_id=order_id, amount="10.00", paypal_client_id=paypal_client_id)
+    # CHANGED TO $25 INSTEAD OF $10
+    return render_template('payment_page.html', order_id=order_id, amount="25.00", paypal_client_id=paypal_client_id)
 
 @app.route('/simulate-payment-success/<int:order_id>')
 def simulate_payment_success(order_id):
     order = Order.query.get(order_id)
     if not order:
         return "Order not found", 404
-    # Simulate PayPal capture and verification
     order.status = 'paid'
     order.paypal_order_id = f"PAYPAL-{order.id}"
     order.verified = True
@@ -106,8 +106,8 @@ def verify_payment(order_id):
     order = Order.query.get(order_id)
     if not order:
         return jsonify({'error': 'Order not found'}), 404
-    # For real integration, call PayPal API with order.paypal_order_id here.
-    # For simulation, mark verified if status is 'paid'
+    # For real integration, call PayPal API with order.paypal_order_id
+    # For now, verified = True only if status == 'paid'
     order.verified = (order.status == 'paid')
     db.session.commit()
     return jsonify({'verified': order.verified})
@@ -119,7 +119,7 @@ def success():
 @app.route('/api/orders', methods=['GET'])
 def api_orders():
     orders = Order.query.all()
-    orders_dict = {order.id: order.to_dict() for order in orders}
+    orders_dict = {o.id: o.to_dict() for o in orders}
     return jsonify(orders_dict)
 
 @app.route('/api/order/<int:order_id>', methods=['GET'])
