@@ -1,22 +1,53 @@
-import os, logging
+import os, logging, json, requests
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
+from flask_sqlalchemy import SQLAlchemy
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s')
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///orders.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'static/uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-ALLOWED_EXTENSIONS = {'png','jpg','jpeg','gif'}
-orders = {}
-order_counter = 1
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    facebook = db.Column(db.String(120))
+    email = db.Column(db.String(120), nullable=False)
+    order_type = db.Column(db.String(20), nullable=False)
+    details = db.Column(db.Text, nullable=False)
+    filenames = db.Column(db.Text)  # Stored as JSON list
+    status = db.Column(db.String(20), default='pending payment')
+    paypal_order_id = db.Column(db.String(120))
+    verified = db.Column(db.Boolean, default=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'facebook': self.facebook,
+            'email': self.email,
+            'order_type': self.order_type,
+            'details': self.details,
+            'filenames': json.loads(self.filenames) if self.filenames else [],
+            'status': self.status,
+            'paypal_order_id': self.paypal_order_id,
+            'verified': self.verified
+        }
+
+with app.app_context():
+    db.create_all()
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/', methods=['GET','POST'])
+@app.route('/', methods=['GET', 'POST'])
 def order_form():
-    global order_counter
     if request.method == 'POST':
         try:
             name = request.form.get('name')
@@ -25,7 +56,12 @@ def order_form():
             order_type = request.form.get('order_type')
             details = request.form.get('details')
             files = request.files.getlist('images')
-            order_id = order_counter
+            order = Order(name=name, facebook=facebook, email=email,
+                          order_type=order_type, details=details,
+                          filenames=json.dumps([]), status='pending payment')
+            db.session.add(order)
+            db.session.commit()
+            order_id = order.id
             folder_name = f"order_{order_id}_{order_type}"
             order_folder = os.path.join(app.config['UPLOAD_FOLDER'], folder_name)
             os.makedirs(order_folder, exist_ok=True)
@@ -35,17 +71,9 @@ def order_form():
                     filename = secure_filename(f.filename)
                     f.save(os.path.join(order_folder, filename))
                     saved_files.append(filename)
-            orders[order_id] = {
-                'name': name,
-                'facebook': facebook,
-                'email': email,
-                'order_type': order_type,
-                'details': details,
-                'filenames': saved_files,
-                'status': 'pending payment'
-            }
-            logging.info(f"Created order #{order_id} for {name} ({email}) with type {order_type}")
-            order_counter += 1
+            order.filenames = json.dumps(saved_files)
+            db.session.commit()
+            logging.info(f"Created order #{order_id} for {name}")
             return redirect(url_for('payment_page', order_id=order_id))
         except Exception as e:
             logging.exception("Error creating order")
@@ -54,7 +82,7 @@ def order_form():
 
 @app.route('/payment/<int:order_id>')
 def payment_page(order_id):
-    order = orders.get(order_id)
+    order = Order.query.get(order_id)
     if not order:
         return "Order not found", 404
     paypal_client_id = "Ac4XnyVS6sN7WZTR6iHuS2wWTJl4dYZs5ud9etjyrpoS5lhdmKMBXmCtxUA9qBc2cCKtUo8_LOfrjqhB"
@@ -62,11 +90,27 @@ def payment_page(order_id):
 
 @app.route('/simulate-payment-success/<int:order_id>')
 def simulate_payment_success(order_id):
-    if order_id not in orders:
+    order = Order.query.get(order_id)
+    if not order:
         return "Order not found", 404
-    orders[order_id]['status'] = 'paid'
-    logging.info(f"Order #{order_id} marked as paid (simulated).")
+    # Simulate PayPal capture and verification
+    order.status = 'paid'
+    order.paypal_order_id = f"PAYPAL-{order.id}"
+    order.verified = True
+    db.session.commit()
+    logging.info(f"Order #{order_id} marked as paid and verified (simulated).")
     return redirect(url_for('success'))
+
+@app.route('/verify-payment/<int:order_id>', methods=['POST'])
+def verify_payment(order_id):
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({'error': 'Order not found'}), 404
+    # For real integration, call PayPal API with order.paypal_order_id here.
+    # For simulation, mark verified if status is 'paid'
+    order.verified = (order.status == 'paid')
+    db.session.commit()
+    return jsonify({'verified': order.verified})
 
 @app.route('/success')
 def success():
@@ -74,25 +118,30 @@ def success():
 
 @app.route('/api/orders', methods=['GET'])
 def api_orders():
-    return jsonify(orders)
+    orders = Order.query.all()
+    orders_dict = {order.id: order.to_dict() for order in orders}
+    return jsonify(orders_dict)
 
 @app.route('/api/order/<int:order_id>', methods=['GET'])
 def api_order(order_id):
-    if order_id not in orders:
+    order = Order.query.get(order_id)
+    if not order:
         return jsonify({'error': 'Order not found'}), 404
-    return jsonify(orders[order_id])
+    return jsonify(order.to_dict())
 
 @app.route('/api/order/<int:order_id>/status', methods=['POST'])
 def api_update_status(order_id):
-    if order_id not in orders:
+    order = Order.query.get(order_id)
+    if not order:
         return jsonify({'error': 'Order not found'}), 404
     data = request.get_json()
     new_status = data.get('status')
     if not new_status:
         return jsonify({'error': 'No status provided'}), 400
-    orders[order_id]['status'] = new_status
+    order.status = new_status
+    db.session.commit()
     logging.info(f"Order #{order_id} status updated to {new_status}")
     return jsonify({'success': True})
 
-if __name__=='__main__':
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
