@@ -1,4 +1,4 @@
-import os, logging, json, requests
+import os, logging, json, uuid, requests
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
@@ -9,8 +9,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///orders.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Configurable price – set via environment variable PRICE or default to "25.00"
-PRICE = os.environ.get("PRICE", "0.01")
+# Configurable price (via env var "PRICE", default "25.00")
+PRICE = os.environ.get("PRICE", "25.00")
 
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'static/uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -19,12 +19,13 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    unique_id = db.Column(db.String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
     name = db.Column(db.String(120), nullable=False)
     facebook = db.Column(db.String(120))
     email = db.Column(db.String(120), nullable=False)
     order_type = db.Column(db.String(20), nullable=False)
     details = db.Column(db.Text, nullable=False)
-    filenames = db.Column(db.Text)  # JSON list of filenames
+    filenames = db.Column(db.Text)  # Stored as JSON list
     status = db.Column(db.String(20), default='pending payment')
     paypal_order_id = db.Column(db.String(120))
     verified = db.Column(db.Boolean, default=False)
@@ -32,6 +33,7 @@ class Order(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'unique_id': self.unique_id,
             'name': self.name,
             'facebook': self.facebook,
             'email': self.email,
@@ -64,8 +66,8 @@ def order_form():
                           filenames=json.dumps([]), status='pending payment')
             db.session.add(order)
             db.session.commit()
-            order_id = order.id
-            folder_name = f"order_{order_id}_{order_type}"
+            unique = order.unique_id
+            folder_name = f"order_{unique}_{order_type}"
             order_folder = os.path.join(app.config['UPLOAD_FOLDER'], folder_name)
             os.makedirs(order_folder, exist_ok=True)
             saved_files = []
@@ -76,41 +78,41 @@ def order_form():
                     saved_files.append(filename)
             order.filenames = json.dumps(saved_files)
             db.session.commit()
-            logging.info(f"Created order #{order_id} for {name}")
-            return redirect(url_for('payment_page', order_id=order_id))
+            logging.info(f"Created order {unique} for {name}")
+            return redirect(url_for('payment_page', unique_id=unique))
         except Exception as e:
             logging.exception("Error creating order")
             return f"Error: {str(e)}", 500
     return render_template('order_form.html')
 
-@app.route('/payment/<int:order_id>')
-def payment_page(order_id):
-    order = Order.query.get(order_id)
+@app.route('/payment/<string:unique_id>')
+def payment_page(unique_id):
+    order = Order.query.filter_by(unique_id=unique_id).first()
     if not order:
         return "Order not found", 404
     # Replace with your live PayPal client ID
     paypal_client_id = "Ac4XnyVS6sN7WZTR6iHuS2wWTJl4dYZs5ud9etjyrpoS5lhdmKMBXmCtxUA9qBc2cCKtUo8_LOfrjqhB"
-    return render_template('payment_page.html', order_id=order_id, amount=PRICE, paypal_client_id=paypal_client_id)
+    return render_template('payment_page.html', unique_id=unique_id, amount=PRICE, paypal_client_id=paypal_client_id)
 
-@app.route('/capture-payment/<int:order_id>', methods=['POST'])
-def capture_payment(order_id):
-    order = Order.query.get(order_id)
+@app.route('/capture-payment/<string:unique_id>', methods=['POST'])
+def capture_payment(unique_id):
+    order = Order.query.filter_by(unique_id=unique_id).first()
     if not order:
         return jsonify({'error': 'Order not found'}), 404
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No data provided'}), 400
-    # In production, verify the capture using PayPal’s API with your secret
+    # Here call PayPal API for real verification if needed.
     order.status = 'paid'
     order.paypal_order_id = data.get('id', '')
     order.verified = True
     db.session.commit()
-    logging.info(f"Order #{order_id} captured with PayPal ID {order.paypal_order_id}")
+    logging.info(f"Order {unique_id} captured with PayPal ID {order.paypal_order_id}")
     return jsonify({'success': True})
 
-@app.route('/verify-payment/<int:order_id>', methods=['POST'])
-def verify_payment(order_id):
-    order = Order.query.get(order_id)
+@app.route('/verify-payment/<string:unique_id>', methods=['POST'])
+def verify_payment(unique_id):
+    order = Order.query.filter_by(unique_id=unique_id).first()
     if not order:
         return jsonify({'error': 'Order not found'}), 404
     order.verified = (order.status == 'paid')
@@ -124,19 +126,19 @@ def success():
 @app.route('/api/orders', methods=['GET'])
 def api_orders():
     orders = Order.query.all()
-    orders_dict = {order.id: order.to_dict() for order in orders}
+    orders_dict = {order.unique_id: order.to_dict() for order in orders}
     return jsonify(orders_dict)
 
-@app.route('/api/order/<int:order_id>', methods=['GET'])
-def api_order(order_id):
-    order = Order.query.get(order_id)
+@app.route('/api/order/<string:unique_id>', methods=['GET'])
+def api_order(unique_id):
+    order = Order.query.filter_by(unique_id=unique_id).first()
     if not order:
         return jsonify({'error': 'Order not found'}), 404
     return jsonify(order.to_dict())
 
-@app.route('/api/order/<int:order_id>/status', methods=['POST'])
-def api_update_status(order_id):
-    order = Order.query.get(order_id)
+@app.route('/api/order/<string:unique_id>/status', methods=['POST'])
+def api_update_status(unique_id):
+    order = Order.query.filter_by(unique_id=unique_id).first()
     if not order:
         return jsonify({'error': 'Order not found'}), 404
     data = request.get_json()
@@ -145,7 +147,7 @@ def api_update_status(order_id):
         return jsonify({'error': 'No status provided'}), 400
     order.status = new_status
     db.session.commit()
-    logging.info(f"Order #{order_id} status updated to {new_status}")
+    logging.info(f"Order {unique_id} status updated to {new_status}")
     return jsonify({'success': True})
 
 if __name__ == '__main__':
