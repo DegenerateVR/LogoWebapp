@@ -1,4 +1,3 @@
-# app.py
 import os, logging
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
@@ -15,12 +14,14 @@ order_counter = 1
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/', methods=['GET','POST'])
 def order_form():
     global order_counter
     if request.method == 'POST':
         try:
             name = request.form.get('name')
+            facebook = request.form.get('facebook')
+            email = request.form.get('email')
             order_type = request.form.get('order_type')
             details = request.form.get('details')
             files = request.files.getlist('images')
@@ -36,12 +37,14 @@ def order_form():
                     saved_files.append(filename)
             orders[order_id] = {
                 'name': name,
+                'facebook': facebook,
+                'email': email,
                 'order_type': order_type,
                 'details': details,
                 'filenames': saved_files,
                 'status': 'pending payment'
             }
-            logging.info(f"Created order #{order_id} for {name} with type {order_type}")
+            logging.info(f"Created order #{order_id} for {name} ({email}) with type {order_type}")
             order_counter += 1
             return redirect(url_for('payment_page', order_id=order_id))
         except Exception as e:
@@ -55,10 +58,7 @@ def payment_page(order_id):
     if not order:
         return "Order not found", 404
     paypal_client_id = "Ac4XnyVS6sN7WZTR6iHuS2wWTJl4dYZs5ud9etjyrpoS5lhdmKMBXmCtxUA9qBc2cCKtUo8_LOfrjqhB"
-    return render_template('payment_page.html',
-                           order_id=order_id,
-                           amount="10.00",
-                           paypal_client_id=paypal_client_id)
+    return render_template('payment_page.html', order_id=order_id, amount="10.00", paypal_client_id=paypal_client_id)
 
 @app.route('/simulate-payment-success/<int:order_id>')
 def simulate_payment_success(order_id):
@@ -94,5 +94,5 @@ def api_update_status(order_id):
     logging.info(f"Order #{order_id} status updated to {new_status}")
     return jsonify({'success': True})
 
-if __name__ == '__main__':
+if __name__=='__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
