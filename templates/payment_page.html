@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Pay for Your Order</title>
+    <!-- IMPORTANT: Using the LIVE PayPal JS SDK URL (no 'sandbox' in the domain) -->
     <script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD"></script>
 </head>
 <body>
@@ -12,12 +13,11 @@
       paypal.Buttons({
         createOrder: function(data, actions) {
           return actions.order.create({
-            purchase_units: [{
-              amount: { value: '{{ amount }}' }
-            }]
+            purchase_units: [{ amount: { value: '{{ amount }}' } }]
           });
         },
         onApprove: function(data, actions) {
+          // Skips capture; simulates success
           window.location.href = "{{ url_for('simulate_payment_success', order_id=order_id) }}";
         },
         onError: function(err) {
