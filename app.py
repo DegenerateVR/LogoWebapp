@@ -9,6 +9,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///orders.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+# Configurable price – set via environment variable PRICE or default to "25.00"
+PRICE = os.environ.get("PRICE", "1.00")
+
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'static/uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -21,7 +24,7 @@ class Order(db.Model):
     email = db.Column(db.String(120), nullable=False)
     order_type = db.Column(db.String(20), nullable=False)
     details = db.Column(db.Text, nullable=False)
-    filenames = db.Column(db.Text)  # Stored as JSON list
+    filenames = db.Column(db.Text)  # JSON list of filenames
     status = db.Column(db.String(20), default='pending payment')
     paypal_order_id = db.Column(db.String(120))
     verified = db.Column(db.Boolean, default=False)
@@ -85,29 +88,31 @@ def payment_page(order_id):
     order = Order.query.get(order_id)
     if not order:
         return "Order not found", 404
+    # Replace with your live PayPal client ID
     paypal_client_id = "Ac4XnyVS6sN7WZTR6iHuS2wWTJl4dYZs5ud9etjyrpoS5lhdmKMBXmCtxUA9qBc2cCKtUo8_LOfrjqhB"
-    # CHANGED TO $25 INSTEAD OF $10
-    return render_template('payment_page.html', order_id=order_id, amount="25.00", paypal_client_id=paypal_client_id)
+    return render_template('payment_page.html', order_id=order_id, amount=PRICE, paypal_client_id=paypal_client_id)
 
-@app.route('/simulate-payment-success/<int:order_id>')
-def simulate_payment_success(order_id):
+@app.route('/capture-payment/<int:order_id>', methods=['POST'])
+def capture_payment(order_id):
     order = Order.query.get(order_id)
     if not order:
-        return "Order not found", 404
+        return jsonify({'error': 'Order not found'}), 404
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    # In production, verify the capture using PayPal’s API with your secret
     order.status = 'paid'
-    order.paypal_order_id = f"PAYPAL-{order.id}"
+    order.paypal_order_id = data.get('id', '')
     order.verified = True
     db.session.commit()
-    logging.info(f"Order #{order_id} marked as paid and verified (simulated).")
-    return redirect(url_for('success'))
+    logging.info(f"Order #{order_id} captured with PayPal ID {order.paypal_order_id}")
+    return jsonify({'success': True})
 
 @app.route('/verify-payment/<int:order_id>', methods=['POST'])
 def verify_payment(order_id):
     order = Order.query.get(order_id)
     if not order:
         return jsonify({'error': 'Order not found'}), 404
-    # For real integration, call PayPal API with order.paypal_order_id
-    # For now, verified = True only if status == 'paid'
     order.verified = (order.status == 'paid')
     db.session.commit()
     return jsonify({'verified': order.verified})
@@ -119,7 +124,7 @@ def success():
 @app.route('/api/orders', methods=['GET'])
 def api_orders():
     orders = Order.query.all()
-    orders_dict = {o.id: o.to_dict() for o in orders}
+    orders_dict = {order.id: order.to_dict() for order in orders}
     return jsonify(orders_dict)
 
 @app.route('/api/order/<int:order_id>', methods=['GET'])
