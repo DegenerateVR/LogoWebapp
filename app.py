@@ -103,4 +103,4 @@ def api_update_status(order_id):
 
 if __name__ == '__main__':
     # Serve HTTPS with a self-signed (adhoc) certificate for testing
-    app.run(debug=True, ssl_context='adhoc')
+    app.run(host='0.0.0.0', port=5000)
