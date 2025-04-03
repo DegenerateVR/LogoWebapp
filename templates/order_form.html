@@ -1,17 +1,16 @@
-<!-- templates/order_form.html -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Place Your Order - DEGENERATE</title>
-    <style>
-      body { font-family: Arial, sans-serif; background: #f8f8f8; margin: 0; padding: 20px; }
-      .container { max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-      h1 { color: #b30000; }
-      label { display: block; margin-top: 10px; font-weight: bold; }
-      input, textarea, select { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
-      button { background: #b30000; color: #fff; border: none; padding: 10px 15px; margin-top: 20px; border-radius: 4px; cursor: pointer; }
-      button:hover { background: #a00000; }
-    </style>
+  <title>Place Your Order - DEGENERATE</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f8f8f8; margin: 0; padding: 20px; }
+    .container { max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h1 { color: #b30000; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, textarea, select { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
+    button { background: #b30000; color: #fff; border: none; padding: 10px 15px; margin-top: 20px; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #a00000; }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -20,6 +19,12 @@
     <form method="POST" enctype="multipart/form-data">
       <label>Name:</label>
       <input type="text" name="name" required>
+      
+      <label>Facebook Username:</label>
+      <input type="text" name="facebook" placeholder="Your Facebook username">
+      
+      <label>Email Address:</label>
+      <input type="email" name="email" required placeholder="you@example.com">
       
       <label>Order Type:</label>
       <select name="order_type" required>
