@@ -14,7 +14,7 @@
 <body>
   <div class="container">
     <h1>DEGENERATE</h1>
-    <h2>Pay for Order #{{ order_id }}</h2>
+    <h2>Pay for Order #{{ unique_id }}</h2>
     <p>Total Amount: ${{ amount }}</p>
     <div id="paypal-button-container"></div>
     <br>
@@ -29,7 +29,7 @@
       },
       onApprove: function(data, actions) {
         return actions.order.capture().then(function(details) {
-          return fetch("{{ url_for('capture_payment', order_id=order_id) }}", {
+          return fetch("{{ url_for('capture_payment', unique_id=unique_id) }}", {
             method: 'post',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(details)
