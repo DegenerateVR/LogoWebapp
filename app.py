@@ -10,7 +10,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Configurable price – set via environment variable PRICE or default to "25.00"
-PRICE = os.environ.get("PRICE", "2.50")
+PRICE = os.environ.get("PRICE", "0.01")
 
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'static/uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
