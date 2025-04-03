@@ -53,7 +53,7 @@ def payment_page(order_id):
     order=orders.get(order_id)
     if not order: return "Order not found",404
     # IMPORTANT: Replace with your real PayPal LIVE client ID
-    paypal_client_id = "LIVE_CLIENT_ID_HERE"
+    paypal_client_id = "Ac4XnyVS6sN7WZTR6iHuS2wWTJl4dYZs5ud9etjyrpoS5lhdmKMBXmCtxUA9qBc2cCKtUo8_LOfrjqhB"
     return render_template('payment_page.html',
                            order_id=order_id,
                            amount="10.00",
