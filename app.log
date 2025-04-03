@@ -1,0 +1,60 @@
+2025-04-02 17:34:38,173 [DEBUG] Starting application...
+2025-04-02 17:34:38,204 [DEBUG] Flask thread started, running app...
+2025-04-02 17:34:38,222 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-04-02 17:34:38,223 [INFO] [33mPress CTRL+C to quit[0m
+2025-04-02 17:34:39,269 [DEBUG] Loading orders into PyQt UI...
+2025-04-02 17:34:39,274 [DEBUG] Starting new HTTP connection (1): 127.0.0.1:5000
+2025-04-02 17:34:39,279 [DEBUG] http://127.0.0.1:5000 "GET /api/orders HTTP/1.1" 200 3
+2025-04-02 17:34:39,284 [DEBUG] Orders loaded successfully.
+2025-04-02 17:37:40,934 [DEBUG] Starting application...
+2025-04-02 17:37:40,991 [DEBUG] Flask thread started, running app...
+2025-04-02 17:37:41,011 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-04-02 17:37:41,012 [INFO] [33mPress CTRL+C to quit[0m
+2025-04-02 17:37:42,039 [DEBUG] Loading orders into PyQt UI...
+2025-04-02 17:37:42,043 [DEBUG] Starting new HTTP connection (1): 127.0.0.1:5000
+2025-04-02 17:37:42,046 [DEBUG] http://127.0.0.1:5000 "GET /api/orders HTTP/1.1" 200 3
+2025-04-02 17:37:42,047 [DEBUG] Orders loaded successfully.
+2025-04-02 17:40:39,253 [DEBUG] Starting application...
+2025-04-02 17:40:39,281 [DEBUG] Flask thread started, running app...
+2025-04-02 17:40:39,302 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-04-02 17:40:39,302 [INFO] [33mPress CTRL+C to quit[0m
+2025-04-02 17:40:40,334 [DEBUG] Loading orders into PyQt UI...
+2025-04-02 17:40:40,338 [DEBUG] Starting new HTTP connection (1): 127.0.0.1:5000
+2025-04-02 17:40:40,341 [DEBUG] http://127.0.0.1:5000 "GET /api/orders HTTP/1.1" 200 3
+2025-04-02 17:40:40,343 [DEBUG] Orders loaded successfully.
+2025-04-02 17:43:34,175 [DEBUG] Starting application...
+2025-04-02 17:43:34,203 [DEBUG] Flask thread started, running app...
+2025-04-02 17:43:34,222 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-04-02 17:43:34,222 [INFO] [33mPress CTRL+C to quit[0m
+2025-04-02 17:43:35,251 [DEBUG] Loading orders into PyQt UI...
+2025-04-02 17:43:35,255 [DEBUG] Starting new HTTP connection (1): 127.0.0.1:5000
+2025-04-02 17:43:35,257 [DEBUG] http://127.0.0.1:5000 "GET /api/orders HTTP/1.1" 200 3
+2025-04-02 17:43:35,258 [DEBUG] Orders loaded successfully.
+2025-04-02 17:47:41,713 [DEBUG] === Starting Fresh Application ===
+2025-04-02 17:47:41,717 [DEBUG] Starting Flask on a background thread
+2025-04-02 17:47:41,736 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-04-02 17:47:41,737 [INFO] [33mPress CTRL+C to quit[0m
+2025-04-02 17:47:42,772 [DEBUG] PyQt: Loading orders into the list
+2025-04-02 17:47:42,776 [DEBUG] Starting new HTTP connection (1): 127.0.0.1:5000
+2025-04-02 17:47:42,778 [DEBUG] http://127.0.0.1:5000 "GET /api/orders HTTP/1.1" 200 3
+2025-04-02 17:50:27,716 [DEBUG] === Starting Simplified Payment Simulation App ===
+2025-04-02 17:50:27,721 [DEBUG] Starting Flask on a background thread
+2025-04-02 17:50:27,743 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-04-02 17:50:27,743 [INFO] [33mPress CTRL+C to quit[0m
+2025-04-02 17:50:28,773 [DEBUG] PyQt: Loading orders into the list
+2025-04-02 17:50:28,779 [DEBUG] Starting new HTTP connection (1): 127.0.0.1:5000
+2025-04-02 17:50:28,781 [DEBUG] http://127.0.0.1:5000 "GET /api/orders HTTP/1.1" 200 3
+2025-04-02 17:54:06,132 [DEBUG] === Starting Complete Simulated Purchase Application ===
+2025-04-02 17:54:06,139 [DEBUG] Starting Flask on a background thread
+2025-04-02 17:54:06,159 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-04-02 17:54:06,160 [INFO] [33mPress CTRL+C to quit[0m
+2025-04-02 17:54:07,192 [DEBUG] PyQt: Loading orders into the list
+2025-04-02 17:54:07,197 [DEBUG] Starting new HTTP connection (1): 127.0.0.1:5000
+2025-04-02 17:54:07,200 [DEBUG] http://127.0.0.1:5000 "GET /api/orders HTTP/1.1" 200 3

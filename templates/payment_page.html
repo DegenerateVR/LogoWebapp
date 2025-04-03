@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pay for Your Order</title>
+    <!-- Load the PayPal JS SDK with the provided client ID -->
+    <script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD"></script>
+</head>
+<body>
+    <h2>Pay for Order #{{ order_id }}</h2>
+    <p>Total Amount: ${{ amount }}</p>
+    <div id="paypal-button-container"></div>
+    <script>
+      paypal.Buttons({
+        createOrder: function(data, actions) {
+          // Set up the transaction
+          return actions.order.create({
+            purchase_units: [{
+              amount: {
+                value: '{{ amount }}'
+              }
+            }]
+          });
+        },
+        onApprove: function(data, actions) {
+          // Normally, you would call actions.order.capture() here.
+          // Instead, we simulate payment success by calling our endpoint.
+          fetch("{{ url_for('simulate_payment_success', order_id=order_id) }}")
+            .then(function(response) {
+              if (response.ok) {
+                window.location.href = "{{ url_for('success') }}";
+              } else {
+                alert("Payment simulation failed.");
+              }
+            })
+            .catch(function(error) {
+              console.error("Error:", error);
+              alert("Error processing payment simulation.");
+            });
+        },
+        onError: function(err) {
+          console.error("PayPal Checkout onError:", err);
+          alert("An error occurred with PayPal Checkout.");
+        }
+      }).render('#paypal-button-container');
+    </script>
+</body>
+</html>

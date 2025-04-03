@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Confirm Purchase</title>
+</head>
+<body>
+    <h2>Confirm Your Purchase</h2>
+    <p>Order #{{ order_id }} - Total Amount: ${{ amount }}</p>
+    <p>You are logged in as: {{ paypal_email }}</p>
+    <p>Click below to confirm your purchase.</p>
+    <a href="{{ url_for('simulate_payment_success', order_id=order_id) }}">
+        <button>Confirm Purchase</button>
+    </a>
+</body>
+</html>
